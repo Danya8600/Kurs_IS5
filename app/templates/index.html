@@ -509,14 +509,67 @@
                         <p>Визуализация результатов и скачивание отчёта.</p>
                     </div>
 
-                    {% if analysis_done %}
+                    {% if analysis_done and charts %}
+
+                    <div class="grid-2">
+                        <div class="card chart-card">
+                            {{ charts.mean_chart | safe }}
+                        </div>
+
+                        <div class="card chart-card">
+                            {{ charts.boxplot_chart | safe }}
+                        </div>
+
+                        <div class="card chart-card">
+                            {{ charts.histogram_chart | safe }}
+                        </div>
+
+                        <div class="card chart-card">
+                            {{ charts.count_chart | safe }}
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Текстовый вывод</h3>
+                        <p>
+                            По результатам анализа выбранный фактор
+                            «{{ anova_result.factor_column }}»
+                            {% if anova_result.significant %}
+                                статистически значимо влияет на результативный показатель
+                                «{{ anova_result.score_column }}».
+                            {% else %}
+                                не показал статистически значимого влияния на результативный показатель
+                                «{{ anova_result.score_column }}».
+                            {% endif %}
+                        </p>
+                        <p>
+                            Подробные значения F-критерия, p-value, таблица ANOVA и результаты Tukey HSD
+                            представлены в разделе «Результаты».
+                        </p>
+                    </div>
+
+                    <div class="report-box">
+                        <div>
+                            <h3>Отчёт будет добавлен на следующем этапе</h3>
+                            <p>
+                                Сейчас доступны интерактивные графики. Следующим шагом добавим формирование
+                                Excel-отчёта со статистическими таблицами и итоговым выводом.
+                            </p>
+                        </div>
+
+                        <div class="btn-row">
+                            <label class="btn secondary" for="screen-results">Вернуться к результатам</label>
+                        </div>
+                    </div>
+
+                    {% elif analysis_done %}
 
                     <div class="empty-state">
                         <div class="empty-icon">↗</div>
-                        <h3>Графики будут добавлены на следующем этапе</h3>
+                        <h3>Графики не удалось построить</h3>
                         <p>
-                            Анализ уже проведён. На следующем шаге мы добавим реальные графики
-                            и формирование отчёта для скачивания.
+                            Анализ был проведён, но при построении графиков возникла проблема.
+                            Проверьте данные и попробуйте выполнить анализ повторно.
                         </p>
                         <label class="btn" for="screen-results">Вернуться к результатам</label>
                     </div>

@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, session, send_file
 
 from config import Config
 from app.services.anova_service import run_one_way_anova
+from app.services.chart_service import build_analysis_charts
 from app.services.data_service import (
     prepare_dataframe,
     build_metrics,
@@ -77,6 +78,7 @@ def render_main_page(**kwargs):
 
         "anova_result": None,
         "tukey_results": [],
+        "charts": None,
 
         "factor_options": FACTOR_OPTIONS,
         "column_descriptions": COLUMN_DESCRIPTIONS,
@@ -112,7 +114,9 @@ def build_preview_context(
         "disciplines": get_unique_values(dataframe, DISCIPLINE_COLUMN),
         "warnings": warnings,
         "empty_values_count": count_empty_values(dataframe),
-        "selected_factor_groups_count": len(get_unique_values(dataframe, selected_factor)),
+        "selected_factor_groups_count": len(
+            get_unique_values(dataframe, selected_factor)
+        ),
     }
 
 
@@ -312,6 +316,12 @@ def analyze_data():
             alpha=alpha
         )
 
+        charts = build_analysis_charts(
+            dataframe=analysis_dataframe,
+            score_column=SCORE_COLUMN,
+            factor_column=selected_factor
+        )
+
         return render_main_page(
             active_screen="results",
             file_loaded=True,
@@ -324,6 +334,7 @@ def analyze_data():
 
             anova_result=anova_result,
             tukey_results=tukey_results,
+            charts=charts,
 
             **preview_context
         )
