@@ -1,5 +1,14 @@
 venv/
 .venv/
+
 __pycache__/
 *.pyc
+
 .idea/
+
+storage/uploads/*
+storage/reports/*
+
+!storage/uploads/.gitkeep
+!storage/reports/.gitkeep
+!storage/templates/.gitkeep

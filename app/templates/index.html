@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANOVA-анализ успеваемости студентов</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <input type="radio" name="screen" id="screen-upload"
+           {% if active_screen == 'upload' %}checked{% endif %}>
+
+    <input type="radio" name="screen" id="screen-preview"
+           {% if active_screen == 'preview' %}checked{% endif %}>
+
+    <input type="radio" name="screen" id="screen-results"
+           {% if active_screen == 'results' %}checked{% endif %}>
+
+    <input type="radio" name="screen" id="screen-charts"
+           {% if active_screen == 'charts' %}checked{% endif %}>
+
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>ANOVA-анализ</h2>
+                <p>успеваемость студентов</p>
+            </div>
+
+            <div class="menu-title">Меню</div>
+
+            <div class="menu">
+                <label for="screen-upload">1. Загрузка файла</label>
+                <label for="screen-preview">2. Предпросмотр</label>
+                <label for="screen-results">3. Результаты</label>
+                <label for="screen-charts">4. Графики и отчёт</label>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <h1>Сравнение эффективности методов обучения</h1>
+                    <p>Однофакторный дисперсионный анализ и post-hoc тест Tukey HSD</p>
+                </div>
+            </header>
+
+            <div class="content">
+
+                <section class="screen upload-screen">
+                    <div class="page-header">
+                        <h2>Загрузка файла</h2>
+                        <p>Загрузите Excel или CSV с данными студентов, методами обучения и баллами за тест.</p>
+                    </div>
+
+                    {% if error_message %}
+                    <div class="alert error">
+                        {{ error_message }}
+                    </div>
+                    {% endif %}
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <form method="post"
+                                  action="{{ url_for('main.upload_file') }}"
+                                  enctype="multipart/form-data">
+
+                                <div class="upload-box">
+                                    <div class="upload-icon">↑</div>
+                                    <h3>Выберите файл с данными</h3>
+                                    <p>Поддерживаются форматы .xlsx и .csv. Файл .xls лучше предварительно сохранить как .xlsx.</p>
+
+                                    <input
+                                        class="file-input"
+                                        id="data-file"
+                                        name="data_file"
+                                        type="file"
+                                        accept=".xlsx,.xls,.csv"
+                                        required
+                                    >
+
+                                    <div class="btn-row">
+                                        <label class="btn" for="data-file">Выбрать файл</label>
+                                        <a class="btn secondary" href="{{ url_for('main.download_template') }}">
+                                            Скачать шаблон
+                                        </a>
+                                    </div>
+
+                                    <div class="selected-file" id="selected-file-name">
+                                        Файл не выбран
+                                    </div>
+                                </div>
+
+                                <div class="file-info">
+                                    <div class="info-box">
+                                        <span>Файл</span>
+                                        <strong class="small-text">
+                                            {% if file_info %}
+                                                {{ file_info.filename }}
+                                            {% else %}
+                                                Файл не выбран
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+
+                                    <div class="info-box">
+                                        <span>Строк</span>
+                                        <strong>
+                                            {% if file_info %}
+                                                {{ file_info.rows }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+
+                                    <div class="info-box">
+                                        <span>Статус</span>
+                                        <strong class="small-text">
+                                            {% if file_info %}
+                                                <span class="badge green">{{ file_info.status }}</span>
+                                            {% else %}
+                                                <span class="badge gray">Ожидание</span>
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <div class="buttons">
+                                    <button class="btn" type="submit">Продолжить</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card">
+                            <h3>Требования к файлу</h3>
+                            <p>Файл должен содержать следующие столбцы:</p>
+
+                            <div class="field-list">
+                                {% for column in column_descriptions %}
+                                <div class="field-item">
+                                    <strong>{{ column.name }}</strong>
+                                    <span class="badge {{ column.badge }}">{{ column.type }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="screen preview-screen">
+                    <div class="page-header">
+                        <h2>Предпросмотр и настройка анализа</h2>
+                        <p>Проверьте данные и выберите параметры анализа.</p>
+                    </div>
+
+                    {% if file_loaded %}
+
+                    <div class="grid-4">
+                        <div class="metric">
+                            <span>Записей</span>
+                            <strong>{{ metrics.records_count }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>Групп</span>
+                            <strong>{{ metrics.groups_count }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>Методов обучения</span>
+                            <strong>{{ metrics.methods_count }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>Средний балл</span>
+                            <strong>{{ metrics.average_score }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3>Таблица данных</h3>
+                            <p>Первые строки загруженного файла.</p>
+
+                            <div class="toolbar">
+                                <div class="search">Предпросмотр первых строк файла</div>
+                                <span class="badge green">Данные распознаны</span>
+                            </div>
+
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>{{ columns.student }}</th>
+                                            <th>{{ columns.group }}</th>
+                                            <th>{{ columns.discipline }}</th>
+                                            <th>{{ columns.method }}</th>
+                                            <th>{{ columns.score }}</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {% for row in preview_rows %}
+                                        <tr>
+                                            <td>{{ row[columns.student] }}</td>
+                                            <td>{{ row[columns.group] }}</td>
+                                            <td>{{ row[columns.discipline] }}</td>
+                                            <td>{{ row[columns.method] }}</td>
+                                            <td>{{ row[columns.score] }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Настройка анализа</h3>
+                            <p>Выберите показатель, фактор, дисциплину и уровень значимости.</p>
+
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label for="result-column">Результативный показатель</label>
+                                    <select id="result-column" name="result_column">
+                                        <option selected>{{ columns.score }}</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label for="factor-column">Фактор</label>
+                                    <select id="factor-column" name="factor_column">
+                                        <option selected>{{ columns.method }}</option>
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label for="discipline-filter">Дисциплина</label>
+                                    <select id="discipline-filter" name="discipline">
+                                        <option value="" selected>Все дисциплины</option>
+                                        {% for discipline in disciplines %}
+                                            <option value="{{ discipline }}">{{ discipline }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="field">
+                                    <label for="alpha-level">Уровень значимости</label>
+                                    <input id="alpha-level" name="alpha" type="text" value="0.05">
+                                </div>
+                            </div>
+
+                            <div class="check-list">
+                                <div class="check">
+                                    <strong>Файл успешно загружен</strong>
+                                    <p>Данные можно использовать для дальнейшего анализа.</p>
+                                </div>
+
+                                {% if metrics.methods_count >= 2 %}
+                                <div class="check">
+                                    <strong>Фактор содержит {{ metrics.methods_count }} группы</strong>
+                                    <p>Этого достаточно для однофакторного дисперсионного анализа.</p>
+                                </div>
+                                {% else %}
+                                <div class="check warning">
+                                    <strong>Недостаточно групп</strong>
+                                    <p>Для ANOVA нужно минимум две группы по фактору.</p>
+                                </div>
+                                {% endif %}
+
+                                {% if warnings %}
+                                    {% for warning in warnings %}
+                                    <div class="check warning">
+                                        <strong>Предупреждение</strong>
+                                        <p>{{ warning }}</p>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                <div class="check">
+                                    <strong>Критичных проблем не найдено</strong>
+                                    <p>Можно переходить к запуску анализа.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="buttons">
+                                <label class="btn secondary" for="screen-upload">Назад</label>
+                                <label class="btn" for="screen-results">Провести анализ</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% else %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">!</div>
+                        <h3>Файл ещё не загружен</h3>
+                        <p>
+                            Чтобы увидеть предпросмотр данных и настроить параметры анализа,
+                            сначала загрузите Excel или CSV-файл на первом шаге.
+                        </p>
+                        <label class="btn" for="screen-upload">Перейти к загрузке файла</label>
+                    </div>
+
+                    {% endif %}
+                </section>
+
+                <section class="screen results-screen">
+                    <div class="page-header">
+                        <h2>Результаты ANOVA и Tukey HSD</h2>
+                        <p>Здесь показываются основные результаты статистического анализа.</p>
+                    </div>
+
+                    <div class="empty-state">
+                        <div class="empty-icon">i</div>
+                        <h3>Анализ ещё не проведён</h3>
+                        <p>
+                            Результаты ANOVA и Tukey HSD появятся здесь после загрузки файла,
+                            проверки данных и запуска анализа.
+                        </p>
+                        <label class="btn" for="screen-upload">Начать с загрузки файла</label>
+                    </div>
+                </section>
+
+                <section class="screen charts-screen">
+                    <div class="page-header">
+                        <h2>Графики и отчёт</h2>
+                        <p>Визуализация результатов и скачивание отчёта.</p>
+                    </div>
+
+                    <div class="empty-state">
+                        <div class="empty-icon">↗</div>
+                        <h3>Графики пока недоступны</h3>
+                        <p>
+                            Графики и отчёт будут сформированы только после проведения статистического анализа.
+                        </p>
+                        <label class="btn" for="screen-upload">Загрузить файл</label>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
