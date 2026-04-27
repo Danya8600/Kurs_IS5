@@ -18,6 +18,7 @@ from app.services.file_service import (
     read_data_file,
     create_template_file,
 )
+from app.services.report_service import create_excel_report
 from app.services.tukey_service import run_tukey_hsd
 from app.utils.constants import (
     COLUMN_DESCRIPTIONS,
@@ -322,11 +323,15 @@ def analyze_data():
             factor_column=selected_factor
         )
 
+        session["selected_discipline"] = selected_discipline
+        session["selected_factor"] = selected_factor
+        session["alpha"] = alpha
+
         return render_main_page(
             active_screen="results",
             file_loaded=True,
             analysis_done=True,
-            report_ready=False,
+            report_ready=True,
 
             selected_discipline=selected_discipline,
             selected_factor=selected_factor,
@@ -409,3 +414,85 @@ def download_template():
         as_attachment=True,
         download_name="student_results_template.xlsx"
     )
+
+
+@main_bp.route("/download-report", methods=["GET"])
+def download_report():
+    """
+    Формирует и отправляет пользователю Excel-отчёт
+    по последнему выполненному анализу.
+    """
+
+    try:
+        dataframe, warnings, uploaded_file_name = load_current_dataframe()
+
+        selected_discipline = session.get("selected_discipline", "")
+        selected_factor = session.get("selected_factor", METHOD_COLUMN)
+        alpha = session.get("alpha", Config.DEFAULT_ALPHA)
+
+        selected_factor = validate_factor_column(selected_factor)
+        alpha = parse_alpha(str(alpha))
+
+        analysis_dataframe = dataframe.copy()
+
+        if selected_discipline:
+            analysis_dataframe = analysis_dataframe[
+                analysis_dataframe[DISCIPLINE_COLUMN] == selected_discipline
+            ].copy()
+
+            if analysis_dataframe.empty:
+                raise ValueError(
+                    "После фильтрации по выбранной дисциплине не осталось данных для отчёта."
+                )
+
+        anova_result = run_one_way_anova(
+            dataframe=analysis_dataframe,
+            score_column=SCORE_COLUMN,
+            factor_column=selected_factor,
+            alpha=alpha
+        )
+
+        tukey_results = run_tukey_hsd(
+            dataframe=analysis_dataframe,
+            score_column=SCORE_COLUMN,
+            factor_column=selected_factor,
+            alpha=alpha
+        )
+
+        metrics = build_metrics(analysis_dataframe)
+
+        report_path = create_excel_report(
+            report_folder=Config.REPORT_FOLDER,
+            filename=uploaded_file_name,
+            anova_result=anova_result,
+            tukey_results=tukey_results,
+            selected_discipline=selected_discipline,
+            metrics=metrics,
+        )
+
+        return send_file(
+            report_path,
+            as_attachment=True,
+            download_name=report_path.name
+        )
+
+    except ValueError as error:
+        return render_main_page(
+            active_screen="results",
+            file_loaded=False,
+            analysis_done=False,
+            report_ready=False,
+            error_message=str(error),
+        )
+
+    except Exception as error:
+        return render_main_page(
+            active_screen="results",
+            file_loaded=False,
+            analysis_done=False,
+            report_ready=False,
+            error_message=(
+                "Произошла ошибка при формировании отчёта: "
+                f"{error}"
+            ),
+        )
