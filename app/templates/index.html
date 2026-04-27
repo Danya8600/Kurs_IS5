@@ -157,6 +157,12 @@
 
                     {% if file_loaded %}
 
+                    {% if error_message %}
+                    <div class="alert error">
+                        {{ error_message }}
+                    </div>
+                    {% endif %}
+
                     <div class="grid-4">
                         <div class="metric">
                             <span>Записей</span>
@@ -220,74 +226,97 @@
                             <h3>Настройка анализа</h3>
                             <p>Выберите показатель, фактор, дисциплину и уровень значимости.</p>
 
-                            <div class="form-grid">
-                                <div class="field">
-                                    <label for="result-column">Результативный показатель</label>
-                                    <select id="result-column" name="result_column">
-                                        <option selected>{{ columns.score }}</option>
-                                    </select>
-                                </div>
-
-                                <div class="field">
-                                    <label for="factor-column">Фактор</label>
-                                    <select id="factor-column" name="factor_column">
-                                        <option selected>{{ columns.method }}</option>
-                                    </select>
-                                </div>
-
-                                <div class="field">
-                                    <label for="discipline-filter">Дисциплина</label>
-                                    <select id="discipline-filter" name="discipline">
-                                        <option value="" selected>Все дисциплины</option>
-                                        {% for discipline in disciplines %}
-                                            <option value="{{ discipline }}">{{ discipline }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                <div class="field">
-                                    <label for="alpha-level">Уровень значимости</label>
-                                    <input id="alpha-level" name="alpha" type="text" value="0.05">
-                                </div>
-                            </div>
-
-                            <div class="check-list">
-                                <div class="check">
-                                    <strong>Файл успешно загружен</strong>
-                                    <p>Данные можно использовать для дальнейшего анализа.</p>
-                                </div>
-
-                                {% if metrics.methods_count >= 2 %}
-                                <div class="check">
-                                    <strong>Фактор содержит {{ metrics.methods_count }} группы</strong>
-                                    <p>Этого достаточно для однофакторного дисперсионного анализа.</p>
-                                </div>
-                                {% else %}
-                                <div class="check warning">
-                                    <strong>Недостаточно групп</strong>
-                                    <p>Для ANOVA нужно минимум две группы по фактору.</p>
-                                </div>
-                                {% endif %}
-
-                                {% if warnings %}
-                                    {% for warning in warnings %}
-                                    <div class="check warning">
-                                        <strong>Предупреждение</strong>
-                                        <p>{{ warning }}</p>
+                            <form method="post" action="{{ url_for('main.analyze_data') }}">
+                                <div class="form-grid">
+                                    <div class="field">
+                                        <label for="result-column">Результативный показатель</label>
+                                        <select id="result-column" name="result_column">
+                                            <option selected>{{ columns.score }}</option>
+                                        </select>
                                     </div>
-                                    {% endfor %}
-                                {% else %}
-                                <div class="check">
-                                    <strong>Критичных проблем не найдено</strong>
-                                    <p>Можно переходить к запуску анализа.</p>
-                                </div>
-                                {% endif %}
-                            </div>
 
-                            <div class="buttons">
-                                <label class="btn secondary" for="screen-upload">Назад</label>
-                                <label class="btn" for="screen-results">Провести анализ</label>
-                            </div>
+                                    <div class="field">
+                                        <label for="factor-column">Фактор</label>
+                                        <select id="factor-column" name="factor_column">
+                                            {% for factor in factor_options %}
+                                                <option value="{{ factor.value }}"
+                                                        {% if selected_factor == factor.value %}selected{% endif %}>
+                                                    {{ factor.label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="field">
+                                        <label for="discipline-filter">Дисциплина</label>
+                                        <select id="discipline-filter" name="discipline">
+                                            <option value=""
+                                                    {% if not selected_discipline %}selected{% endif %}>
+                                                Все дисциплины
+                                            </option>
+
+                                            {% for discipline in disciplines %}
+                                                <option value="{{ discipline }}"
+                                                        {% if selected_discipline == discipline %}selected{% endif %}>
+                                                    {{ discipline }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="field">
+                                        <label for="alpha-level">Уровень значимости</label>
+                                        <input id="alpha-level"
+                                               name="alpha"
+                                               type="text"
+                                               value="{{ alpha_value }}">
+                                    </div>
+                                </div>
+
+                                <div class="check-list">
+                                    <div class="check">
+                                        <strong>Файл успешно загружен</strong>
+                                        <p>Данные можно использовать для дальнейшего анализа.</p>
+                                    </div>
+
+                                    {% if selected_factor_groups_count >= 2 %}
+                                    <div class="check">
+                                        <strong>Фактор содержит {{ selected_factor_groups_count }} группы</strong>
+                                        <p>
+                                            Этого достаточно для однофакторного дисперсионного анализа.
+                                            В качестве фактора выбран столбец «{{ selected_factor }}».
+                                        </p>
+                                    </div>
+                                    {% else %}
+                                    <div class="check warning">
+                                        <strong>Недостаточно групп</strong>
+                                        <p>
+                                            Для ANOVA нужно минимум две группы по выбранному фактору.
+                                            Сейчас выбран столбец «{{ selected_factor }}».
+                                        </p>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if warnings %}
+                                        {% for warning in warnings %}
+                                        <div class="check warning">
+                                            <strong>Предупреждение</strong>
+                                            <p>{{ warning }}</p>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                    <div class="check">
+                                        <strong>Критичных проблем не найдено</strong>
+                                        <p>Можно переходить к запуску анализа.</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="buttons">
+                                    <label class="btn secondary" for="screen-upload">Назад</label>
+                                    <button class="btn" type="submit">Провести анализ</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
 
@@ -312,6 +341,155 @@
                         <p>Здесь показываются основные результаты статистического анализа.</p>
                     </div>
 
+                    {% if analysis_done %}
+
+                    <div class="card summary">
+                        <h3>
+                            {% if anova_result.significant %}
+                                Выбранный фактор статистически значимо влияет на результаты студентов
+                            {% else %}
+                                Статистически значимого влияния выбранного фактора не выявлено
+                            {% endif %}
+                        </h3>
+                        <p>{{ anova_result.conclusion }}</p>
+                    </div>
+
+                    <div class="grid-4">
+                        <div class="metric">
+                            <span>F-критерий</span>
+                            <strong>{{ anova_result.f_statistic }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>p-value</span>
+                            <strong>{{ anova_result.p_value }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>Уровень значимости</span>
+                            <strong>{{ anova_result.alpha }}</strong>
+                        </div>
+
+                        <div class="metric">
+                            <span>Итог</span>
+                            <strong class="{% if anova_result.significant %}result-success{% else %}small-text{% endif %}">
+                                {{ anova_result.result_text }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3>Таблица ANOVA</h3>
+                            <p>Показывает общий результат дисперсионного анализа.</p>
+
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Источник вариации</th>
+                                            <th>SS</th>
+                                            <th>df</th>
+                                            <th>MS</th>
+                                            <th>F</th>
+                                            <th>p-value</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {% for row in anova_result.anova_table %}
+                                        <tr>
+                                            <td>{{ row.source }}</td>
+                                            <td>{{ row.ss }}</td>
+                                            <td>{{ row.df }}</td>
+                                            <td>{{ row.ms }}</td>
+                                            <td>{{ row.f }}</td>
+                                            <td>{{ row.p_value }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>Средние значения по группам фактора</h3>
+                            <p>Краткая статистика по выбранному фактору: «{{ anova_result.factor_column }}».</p>
+
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Группа</th>
+                                            <th>Количество</th>
+                                            <th>Среднее</th>
+                                            <th>Стандартное отклонение</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {% for group in anova_result.groups_summary %}
+                                        <tr>
+                                            <td>{{ group.name }}</td>
+                                            <td>{{ group.count }}</td>
+                                            <td>{{ group.mean }}</td>
+                                            <td>{{ group.std }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Post-hoc тест Tukey HSD</h3>
+                        <p>Показывает, какие конкретно группы отличаются между собой.</p>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Группа 1</th>
+                                        <th>Группа 2</th>
+                                        <th>Разница средних</th>
+                                        <th>p-value</th>
+                                        <th>Нижняя граница</th>
+                                        <th>Верхняя граница</th>
+                                        <th>Значимо</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for row in tukey_results %}
+                                    <tr>
+                                        <td>{{ row.group_1 }}</td>
+                                        <td>{{ row.group_2 }}</td>
+                                        <td>{{ row.mean_difference }}</td>
+                                        <td>{{ row.p_value }}</td>
+                                        <td>{{ row.lower_bound }}</td>
+                                        <td>{{ row.upper_bound }}</td>
+                                        <td>
+                                            {% if row.significant %}
+                                                <span class="badge green">{{ row.significant_text }}</span>
+                                            {% else %}
+                                                <span class="badge gray">{{ row.significant_text }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="buttons">
+                            <label class="btn secondary" for="screen-preview">Изменить параметры</label>
+                            <label class="btn" for="screen-charts">Перейти к графикам</label>
+                        </div>
+                    </div>
+
+                    {% else %}
+
                     <div class="empty-state">
                         <div class="empty-icon">i</div>
                         <h3>Анализ ещё не проведён</h3>
@@ -321,6 +499,8 @@
                         </p>
                         <label class="btn" for="screen-upload">Начать с загрузки файла</label>
                     </div>
+
+                    {% endif %}
                 </section>
 
                 <section class="screen charts-screen">
@@ -328,6 +508,20 @@
                         <h2>Графики и отчёт</h2>
                         <p>Визуализация результатов и скачивание отчёта.</p>
                     </div>
+
+                    {% if analysis_done %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">↗</div>
+                        <h3>Графики будут добавлены на следующем этапе</h3>
+                        <p>
+                            Анализ уже проведён. На следующем шаге мы добавим реальные графики
+                            и формирование отчёта для скачивания.
+                        </p>
+                        <label class="btn" for="screen-results">Вернуться к результатам</label>
+                    </div>
+
+                    {% else %}
 
                     <div class="empty-state">
                         <div class="empty-icon">↗</div>
@@ -337,6 +531,8 @@
                         </p>
                         <label class="btn" for="screen-upload">Загрузить файл</label>
                     </div>
+
+                    {% endif %}
                 </section>
 
             </div>
