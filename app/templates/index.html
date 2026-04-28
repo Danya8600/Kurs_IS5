@@ -558,8 +558,11 @@
                         </div>
 
                         <div class="btn-row">
-                            <a class="btn green" href="{{ url_for('main.download_report') }}">
-                                Скачать отчёт
+                            <a class="btn green" href="{{ url_for('main.download_report', format='xlsx') }}">
+                                Скачать отчёт (.xlsx)
+                            </a>
+                            <a class="btn green" href="{{ url_for('main.download_report', format='docx') }}">
+                                Скачать отчёт (.docx)
                             </a>
                             <label class="btn secondary" for="screen-results">Вернуться к результатам</label>
                         </div>

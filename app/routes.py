@@ -18,7 +18,7 @@ from app.services.file_service import (
     read_data_file,
     create_template_file,
 )
-from app.services.report_service import create_excel_report
+from app.services.report_service import create_excel_report, create_docx_report
 from app.services.tukey_service import run_tukey_hsd
 from app.utils.constants import (
     COLUMN_DESCRIPTIONS,
@@ -419,11 +419,16 @@ def download_template():
 @main_bp.route("/download-report", methods=["GET"])
 def download_report():
     """
-    Формирует и отправляет пользователю Excel-отчёт
-    по последнему выполненному анализу.
+    Формирует и отправляет пользователю отчёт
+    по последнему выполненному анализу (в формате .xlsx или .docx).
     """
 
     try:
+        report_format = request.args.get("format", "xlsx").lower()
+
+        if report_format not in ["xlsx", "docx"]:
+            raise ValueError("Недопустимый формат отчета. Поддерживаются: xlsx, docx")
+
         dataframe, warnings, uploaded_file_name = load_current_dataframe()
 
         selected_discipline = session.get("selected_discipline", "")
@@ -461,14 +466,24 @@ def download_report():
 
         metrics = build_metrics(analysis_dataframe)
 
-        report_path = create_excel_report(
-            report_folder=Config.REPORT_FOLDER,
-            filename=uploaded_file_name,
-            anova_result=anova_result,
-            tukey_results=tukey_results,
-            selected_discipline=selected_discipline,
-            metrics=metrics,
-        )
+        if report_format == "docx":
+            report_path = create_docx_report(
+                report_folder=Config.REPORT_FOLDER,
+                filename=uploaded_file_name,
+                anova_result=anova_result,
+                tukey_results=tukey_results,
+                selected_discipline=selected_discipline,
+                metrics=metrics,
+            )
+        else:
+            report_path = create_excel_report(
+                report_folder=Config.REPORT_FOLDER,
+                filename=uploaded_file_name,
+                anova_result=anova_result,
+                tukey_results=tukey_results,
+                selected_discipline=selected_discipline,
+                metrics=metrics,
+            )
 
         return send_file(
             report_path,
