@@ -68,8 +68,9 @@
 
                                 <div class="upload-box">
                                     <div class="upload-icon">↑</div>
-                                    <h3>Выберите файл с данными</h3>
+                                    <h3>Выберите или перетащите файл</h3>
                                     <p>Поддерживаются форматы .xlsx и .csv. Файл .xls лучше предварительно сохранить как .xlsx.</p>
+                                    <p style="color: #666; font-size: 13px; margin-top: 8px;">💡 Можете перетащить файл в это окно или нажать кнопку "Выбрать файл"</p>
 
                                     <input
                                         class="file-input"
@@ -195,8 +196,22 @@
                                 <span class="badge green">Данные распознаны</span>
                             </div>
 
+                            <!-- Фильтр по дисциплине -->
+                            <div class="filter-section">
+                                <label for="preview-discipline-filter" style="font-weight: bold; margin-right: 8px;">
+                                    Фильтр по дисциплине:
+                                </label>
+                                <select id="preview-discipline-filter" class="filter-select">
+                                    <option value="">— Показать все —</option>
+                                    {% for discipline in disciplines %}
+                                        <option value="{{ discipline }}">{{ discipline }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span id="preview-filter-info" style="margin-left: 12px; color: #666; font-size: 14px;"></span>
+                            </div>
+
                             <div class="table-wrap">
-                                <table>
+                                <table id="preview-table">
                                     <thead>
                                         <tr>
                                             <th>{{ columns.student }}</th>
@@ -209,7 +224,7 @@
 
                                     <tbody>
                                         {% for row in preview_rows %}
-                                        <tr>
+                                        <tr data-discipline="{{ row[columns.discipline] }}">
                                             <td>{{ row[columns.student] }}</td>
                                             <td>{{ row[columns.group] }}</td>
                                             <td>{{ row[columns.discipline] }}</td>
@@ -558,8 +573,11 @@
                         </div>
 
                         <div class="btn-row">
-                            <a class="btn green" href="{{ url_for('main.download_report') }}">
-                                Скачать отчёт
+                            <a class="btn green" href="{{ url_for('main.download_report', format='xlsx') }}">
+                                Скачать отчёт (.xlsx)
+                            </a>
+                            <a class="btn green" href="{{ url_for('main.download_report', format='docx') }}">
+                                Скачать отчёт (.docx)
                             </a>
                             <label class="btn secondary" for="screen-results">Вернуться к результатам</label>
                         </div>
