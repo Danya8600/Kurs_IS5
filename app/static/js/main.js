@@ -69,4 +69,68 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     }
+
+    // Фильтрация таблицы предпросмотра по дисциплине
+    const filterSelect = document.getElementById("preview-discipline-filter");
+    const previewTable = document.getElementById("preview-table");
+    const filterInfo = document.getElementById("preview-filter-info");
+
+    if (filterSelect && previewTable) {
+        filterSelect.addEventListener("change", function () {
+            const selectedDiscipline = this.value;
+
+            // Отправляем AJAX запрос на сервер для получения отфильтрованных данных
+            fetch("/api/preview-filter", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    discipline: selectedDiscipline
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Очищаем текущие строки таблицы
+                    const tbody = previewTable.querySelector("tbody");
+                    tbody.innerHTML = "";
+
+                    // Добавляем новые строки
+                    data.rows.forEach(row => {
+                        const tr = document.createElement("tr");
+                        tr.setAttribute("data-discipline", row["Дисциплина"]);
+                        tr.innerHTML = `
+                            <td>${row["ФИО студента"]}</td>
+                            <td>${row["Группа"]}</td>
+                            <td>${row["Дисциплина"]}</td>
+                            <td>${row["Метод обучения"]}</td>
+                            <td>${row["Оценка / балл за тест"]}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    // Обновляем информацию о количестве видимых строк
+                    if (selectedDiscipline === "") {
+                        filterInfo.textContent = `Всего строк: ${data.total}`;
+                    } else {
+                        filterInfo.textContent = `Показано: ${data.rows.length} из ${data.total}`;
+                    }
+                } else {
+                    console.error("Ошибка:", data.error);
+                    filterInfo.textContent = "Ошибка при фильтрации";
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка при запросе:", error);
+                filterInfo.textContent = "Ошибка при фильтрации";
+            });
+        });
+
+        // Установка начального значения информации
+        const totalRows = previewTable.querySelectorAll("tbody tr").length;
+        if (filterInfo) {
+            filterInfo.textContent = `Всего строк: ${totalRows}`;
+        }
+    }
 });

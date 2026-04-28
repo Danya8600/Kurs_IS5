@@ -592,6 +592,43 @@ input[type="text"] {
     color: #666;
 }
 
+/* Стили для фильтра таблицы */
+.filter-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f5f7fb;
+    border-radius: 6px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #9caec6;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    min-width: 150px;
+    transition: border-color 0.3s ease;
+}
+
+.filter-select:hover {
+    border-color: #6a8db8;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+table tbody tr.hidden {
+    display: none;
+}
+
 @media (max-width: 1100px) {
     .app {
         flex-direction: column;

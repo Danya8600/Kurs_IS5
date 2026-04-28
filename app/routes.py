@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from flask import Blueprint, render_template, request, session, send_file
+import pandas as pd
+from flask import Blueprint, render_template, request, session, send_file, jsonify
 
 from config import Config
 from app.services.anova_service import run_one_way_anova
@@ -24,6 +25,7 @@ from app.utils.constants import (
     COLUMN_DESCRIPTIONS,
     COLUMN_KEYS,
     DISCIPLINE_COLUMN,
+    STUDENT_COLUMN,
     METHOD_COLUMN,
     GROUP_COLUMN,
     SCORE_COLUMN,
@@ -511,3 +513,62 @@ def download_report():
                 f"{error}"
             ),
         )
+
+
+@main_bp.route("/api/preview-filter", methods=["POST"])
+def get_filtered_preview():
+    """
+    AJAX endpoint для получения отфильтрованных данных таблицы предпросмотра.
+    Возвращает первые 10 строк для выбранной дисциплины.
+    """
+
+    try:
+        selected_discipline = request.json.get("discipline", "")
+
+        dataframe, warnings, uploaded_file_name = load_current_dataframe()
+
+        # Если выбрана дисциплина, фильтруем данные
+        if selected_discipline:
+            filtered_df = dataframe[
+                dataframe[DISCIPLINE_COLUMN] == selected_discipline
+            ]
+        else:
+            filtered_df = dataframe
+
+        # Берем первые 10 строк
+        preview_df = filtered_df.head(10)
+
+        # Преобразуем DataFrame в список словарей для JSON
+        rows = []
+        for _, row in preview_df.iterrows():
+            row_dict = {
+                STUDENT_COLUMN: str(row[STUDENT_COLUMN]) if pd.notna(row[STUDENT_COLUMN]) else "",
+                GROUP_COLUMN: str(row[GROUP_COLUMN]) if pd.notna(row[GROUP_COLUMN]) else "",
+                DISCIPLINE_COLUMN: str(row[DISCIPLINE_COLUMN]) if pd.notna(row[DISCIPLINE_COLUMN]) else "",
+                METHOD_COLUMN: str(row[METHOD_COLUMN]) if pd.notna(row[METHOD_COLUMN]) else "",
+                SCORE_COLUMN: int(row[SCORE_COLUMN]) if pd.notna(row[SCORE_COLUMN]) else 0,
+            }
+            rows.append(row_dict)
+
+        return jsonify({
+            "success": True,
+            "rows": rows,
+            "total": len(filtered_df),
+        })
+
+    except ValueError as error:
+        return jsonify({
+            "success": False,
+            "error": str(error)
+        }), 400
+
+    except Exception as error:
+        import traceback
+        traceback.print_exc()  # Для отладки
+        return jsonify({
+            "success": False,
+            "error": f"Ошибка при фильтрации: {str(error)}"
+        }), 500
+
+
+

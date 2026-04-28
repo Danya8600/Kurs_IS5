@@ -196,8 +196,22 @@
                                 <span class="badge green">Данные распознаны</span>
                             </div>
 
+                            <!-- Фильтр по дисциплине -->
+                            <div class="filter-section">
+                                <label for="preview-discipline-filter" style="font-weight: bold; margin-right: 8px;">
+                                    Фильтр по дисциплине:
+                                </label>
+                                <select id="preview-discipline-filter" class="filter-select">
+                                    <option value="">— Показать все —</option>
+                                    {% for discipline in disciplines %}
+                                        <option value="{{ discipline }}">{{ discipline }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span id="preview-filter-info" style="margin-left: 12px; color: #666; font-size: 14px;"></span>
+                            </div>
+
                             <div class="table-wrap">
-                                <table>
+                                <table id="preview-table">
                                     <thead>
                                         <tr>
                                             <th>{{ columns.student }}</th>
@@ -210,7 +224,7 @@
 
                                     <tbody>
                                         {% for row in preview_rows %}
-                                        <tr>
+                                        <tr data-discipline="{{ row[columns.discipline] }}">
                                             <td>{{ row[columns.student] }}</td>
                                             <td>{{ row[columns.group] }}</td>
                                             <td>{{ row[columns.discipline] }}</td>
