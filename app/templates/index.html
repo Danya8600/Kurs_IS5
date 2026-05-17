@@ -60,6 +60,8 @@
                     </div>
                     {% endif %}
 
+                    <div class="alert error" id="upload-error" style="display: none;"></div>
+
                     <div class="grid-2">
                         <div class="card">
                             <form method="post"
@@ -319,6 +321,11 @@
                                             <p>{{ warning }}</p>
                                         </div>
                                         {% endfor %}
+                                    {% elif error_message %}
+                                    <div class="check warning">
+                                        <strong>Обнаружены ошибки</strong>
+                                        <p>Исправьте ошибки и повторите запуск анализа.</p>
+                                    </div>
                                     {% else %}
                                     <div class="check">
                                         <strong>Критичных проблем не найдено</strong>
