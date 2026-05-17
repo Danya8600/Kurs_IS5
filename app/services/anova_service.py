@@ -158,6 +158,9 @@ def _prepare_analysis_dataframe(
 
     analysis_dataframe = dataframe[required_columns].copy()
 
+    analysis_dataframe[score_column] = analysis_dataframe[score_column].apply(
+        _normalize_score_value
+    )
     analysis_dataframe[score_column] = pd.to_numeric(
         analysis_dataframe[score_column],
         errors="coerce"
@@ -183,6 +186,22 @@ def _prepare_analysis_dataframe(
         )
 
     return analysis_dataframe
+
+
+def _normalize_score_value(value) -> str | None:
+    """
+    Нормализует значения оценок: поддерживает запятую как разделитель.
+    """
+
+    if pd.isna(value):
+        return None
+
+    normalized = str(value).strip().replace(",", ".")
+
+    if normalized == "":
+        return None
+
+    return normalized
 
 
 def _format_number(value, digits: int = 4) -> str:

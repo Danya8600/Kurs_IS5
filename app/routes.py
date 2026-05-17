@@ -152,6 +152,25 @@ def parse_alpha(alpha_value: str) -> float:
     return alpha
 
 
+def format_score_value(value) -> str:
+    """
+    Форматирует оценку для предпросмотра (поддерживает дробные значения).
+    """
+
+    if pd.isna(value):
+        return ""
+
+    try:
+        float_value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if float_value.is_integer():
+        return str(int(float_value))
+
+    return str(round(float_value, 2))
+
+
 def validate_factor_column(factor_column: str) -> str:
     """
     Проверяет, что выбранный фактор разрешён для анализа.
@@ -213,8 +232,8 @@ def upload_file():
     uploaded_file = request.files.get("data_file")
 
     try:
-        if uploaded_file is None:
-            raise ValueError("Файл не был передан на сервер.")
+        if uploaded_file is None or not uploaded_file.filename:
+            raise ValueError("Выберите файл для загрузки.")
 
         validate_uploaded_filename(uploaded_file.filename)
 
@@ -546,7 +565,7 @@ def get_filtered_preview():
                 GROUP_COLUMN: str(row[GROUP_COLUMN]) if pd.notna(row[GROUP_COLUMN]) else "",
                 DISCIPLINE_COLUMN: str(row[DISCIPLINE_COLUMN]) if pd.notna(row[DISCIPLINE_COLUMN]) else "",
                 METHOD_COLUMN: str(row[METHOD_COLUMN]) if pd.notna(row[METHOD_COLUMN]) else "",
-                SCORE_COLUMN: int(row[SCORE_COLUMN]) if pd.notna(row[SCORE_COLUMN]) else 0,
+                SCORE_COLUMN: format_score_value(row[SCORE_COLUMN]),
             }
             rows.append(row_dict)
 
@@ -569,6 +588,3 @@ def get_filtered_preview():
             "success": False,
             "error": f"Ошибка при фильтрации: {str(error)}"
         }), 500
-
-
-

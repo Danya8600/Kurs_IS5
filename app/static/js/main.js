@@ -2,9 +2,34 @@ document.addEventListener("DOMContentLoaded", function () {
     const fileInput = document.getElementById("data-file");
     const selectedFileName = document.getElementById("selected-file-name");
     const uploadBox = document.querySelector(".upload-box");
+    const uploadError = document.getElementById("upload-error");
 
     if (!fileInput || !selectedFileName) {
         return;
+    }
+
+    const uploadForm = fileInput.closest("form");
+    if (uploadForm) {
+        const submitButton = uploadForm.querySelector("button[type='submit']");
+
+        if (submitButton) {
+            submitButton.addEventListener("click", function () {
+                if (fileInput.files.length === 0 && uploadError) {
+                    uploadError.textContent = "Выберите файл для загрузки.";
+                    uploadError.style.display = "block";
+                }
+            });
+        }
+
+        uploadForm.addEventListener("submit", function (event) {
+            if (fileInput.files.length === 0) {
+                event.preventDefault();
+                if (uploadError) {
+                    uploadError.textContent = "Выберите файл для загрузки.";
+                    uploadError.style.display = "block";
+                }
+            }
+        });
     }
 
     // Обработка выбора файла через input
@@ -13,6 +38,11 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedFileName.textContent = fileInput.files[0].name;
         } else {
             selectedFileName.textContent = "Файл не выбран";
+        }
+
+        if (uploadError) {
+            uploadError.style.display = "none";
+            uploadError.textContent = "";
         }
     });
 

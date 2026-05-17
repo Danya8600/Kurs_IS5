@@ -41,6 +41,7 @@ def prepare_dataframe(raw_dataframe: pd.DataFrame) -> tuple[pd.DataFrame, list[s
         dataframe[column] = dataframe[column].apply(_normalize_text_value)
 
     original_score_values = dataframe[SCORE_COLUMN].copy()
+    dataframe[SCORE_COLUMN] = dataframe[SCORE_COLUMN].apply(_normalize_score_value)
     dataframe[SCORE_COLUMN] = pd.to_numeric(
         dataframe[SCORE_COLUMN],
         errors="coerce"
@@ -156,6 +157,22 @@ def _normalize_text_value(value) -> str:
         return ""
 
     return str(value).strip()
+
+
+def _normalize_score_value(value) -> str | None:
+    """
+    Нормализует значения оценок: поддерживает запятую как разделитель.
+    """
+
+    if pd.isna(value):
+        return None
+
+    normalized = str(value).strip().replace(",", ".")
+
+    if normalized == "":
+        return None
+
+    return normalized
 
 
 def _format_score(value) -> str:
